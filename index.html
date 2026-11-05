@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="筋トレ記録">
+  <meta name="description" content="広告なし・オフライン対応の個人用筋トレ記録アプリ">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <title>筋トレ記録</title>
+  <style>
+    :root { color-scheme: light; --navy:#101827; --accent:#2767cf; --muted:#667085; --border:#e6e9ee; --bg:#f5f7fa; --card:#fff; --green:#147d56; }
+    * { box-sizing:border-box; }
+    html { -webkit-text-size-adjust:100%; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif; color:var(--navy); background:var(--bg); }
+    button, input, select { font:inherit; }
+    button { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #96b9ff; outline-offset:2px; }
+    .app { max-width:650px; margin:auto; min-height:100dvh; padding:env(safe-area-inset-top) 16px calc(102px + env(safe-area-inset-bottom)); }
+    header { padding:25px 2px 17px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .eyebrow { font-size:11px; font-weight:750; letter-spacing:.15em; color:var(--accent); }
+    h1 { font-size:26px; letter-spacing:-.04em; margin:4px 0 0; }
+    h2 { font-size:18px; margin:0 0 15px; }
+    .badge { font-size:11px; padding:6px 9px; border:1px solid #d7e3f8; color:#245eac; background:#eef4ff; border-radius:99px; white-space:nowrap; }
+    .card { padding:18px; border:1px solid var(--border); border-radius:18px; background:var(--card); box-shadow:0 5px 18px rgba(20,33,60,.025); margin-bottom:14px; }
+    .field { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
+    label { font-size:13px; font-weight:650; }
+    input, select { min-width:0; width:100%; border:1px solid #d7dce4; border-radius:11px; padding:12px; background:#fff; color:var(--navy); font-size:16px; min-height:46px; }
+    input[type=date] { appearance:none; -webkit-appearance:none; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
+    .grid3 input { padding:10px 8px; text-align:center; }
+    .muted { color:var(--muted); font-size:13px; line-height:1.5; }
+    .sectionHead { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
+    .sectionHead h2 { margin:0; }
+    .exercise { background:#f8fafc; border:1px solid var(--border); border-radius:15px; padding:13px; margin-top:12px; }
+    .exerciseHead { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .exerciseHead strong { font-size:16px; overflow-wrap:anywhere; }
+    .setRow { display:grid; grid-template-columns:24px minmax(0,1fr) minmax(0,1fr) 36px; gap:8px; align-items:center; margin-top:8px; }
+    .setRow input { padding:10px 7px; text-align:center; height:44px; }
+    .setHead { display:grid; grid-template-columns:24px minmax(0,1fr) minmax(0,1fr) 36px; gap:8px; margin-top:12px; color:var(--muted); font-size:11px; text-align:center; }
+    .setNum { font-weight:750; font-size:13px; text-align:center; color:#536174; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:10px 15px; border-radius:12px; border:1px solid #d7dce4; background:white; color:var(--navy); font-weight:650; }
+    .btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .btn-full { width:100%; }
+    .btn-quiet { border:none; background:transparent; color:var(--accent); padding:6px; min-height:36px; }
+    .btn-danger { color:#bb3044; }
+    .btn-small { font-size:13px; min-height:36px; padding:6px 10px; }
+    .addBox { display:flex; gap:8px; flex-wrap:wrap; }
+    .addBox select { flex:1; }
+    .addBox button { flex:none; }
+    .actions { display:flex; gap:8px; margin-top:14px; }
+    .actions > * { flex:1; }
+    .success { color:var(--green); font-size:13px; min-height:18px; margin:10px 0 0; }
+    .empty { padding:24px 10px; text-align:center; color:var(--muted); font-size:14px; line-height:1.6; }
+    .historyDay { margin-bottom:11px; padding:13px; background:#fff; border:1px solid var(--border); border-radius:14px; }
+    .historyDayHead { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:8px; }
+    .historyDay strong { font-size:15px; }
+    .historyExercise { font-size:14px; margin-top:8px; line-height:1.5; }
+    .historyExercise .muted { margin-top:2px; }
+    .nav { position:fixed; bottom:0; left:0; right:0; padding:8px max(10px, calc((100vw - 630px)/2)) calc(8px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.96); backdrop-filter:blur(12px); border-top:1px solid var(--border); display:grid; grid-template-columns:repeat(4,1fr); z-index:5; }
+    .nav button { color:#7a8495; border:0; background:none; min-height:54px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:11px; font-weight:650; }
+    .nav button[aria-current=page] { color:var(--accent); }
+    .nav svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    [hidden] { display:none!important; }
+    .chartWrap { width:100%; overflow-x:auto; }
+    #chart { width:100%; min-height:195px; display:block; }
+    .stat { background:#f7f9fd; border-radius:12px; padding:12px; }
+    .stat span { display:block; font-size:12px; color:var(--muted); margin-bottom:5px; }
+    .stat strong { font-size:20px; }
+    .notice { background:#fff9eb; border:1px solid #f3e3b9; border-radius:12px; padding:12px; color:#765b1a; font-size:13px; line-height:1.6; }
+    .fileBtn { position:relative; overflow:hidden; }
+    .fileBtn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .lastSave { font-size:12px; color:var(--muted); margin-top:8px; }
+    @media(max-width:360px) { .app { padding-left:11px; padding-right:11px; } .card { padding:13px; } h1 { font-size:23px; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header><div><div class="eyebrow">WORKOUT LOG</div><h1>筋トレ記録</h1></div><span class="badge">広告なし・個人用</span></header>
+  <main>
+    <section id="page-record">
+      <div class="card">
+        <div class="sectionHead"><h2>トレーニングを記録</h2><span class="muted">1セットずつ入力</span></div>
+        <div class="field"><label for="workoutDate">日付</label><input id="workoutDate" type="date"></div>
+        <div class="field"><label for="exerciseSelect">種目を追加</label><div class="addBox"><select id="exerciseSelect" aria-label="追加する種目"></select><button id="addExercise" class="btn btn-small" type="button">＋ 追加</button></div></div>
+        <div class="addBox"><input id="customExercise" maxlength="40" placeholder="新しい種目名を入力" aria-label="新しい種目名"><button id="addCustom" class="btn btn-small" type="button">登録して追加</button></div>
+        <div id="exerciseList"></div>
+        <div class="actions"><button id="saveWorkout" class="btn btn-primary btn-full" type="button">この日の記録を保存</button></div>
+        <p id="saveMessage" class="success" role="status" aria-live="polite"></p>
+      </div>
+      <p class="muted">前のセットの数値を引き継げます。記録はこの端末のブラウザ内に保存されます。</p>
+    </section>
+    <section id="page-history" hidden>
+      <div class="card"><div class="sectionHead"><h2>履歴</h2><span id="recordCount" class="muted"></span></div><div id="historyList"></div></div>
+    </section>
+    <section id="page-progress" hidden>
+      <div class="card"><h2>成長グラフ</h2><div class="field"><label for="chartExercise">種目</label><select id="chartExercise"></select></div><div class="grid2"><div class="stat"><span>最高使用重量</span><strong id="bestWeight">—</strong></div><div class="stat"><span>推定1RMの最高値</span><strong id="bestOneRM">—</strong></div></div><div id="chartEmpty" class="empty" hidden>まだグラフに表示する記録がありません。</div><div class="chartWrap"><svg id="chart" viewBox="0 0 340 210" role="img" aria-label="推定1RMの推移"></svg></div><p class="muted">推定1RM = 重量 × (1 + 回数 ÷ 30)（Epley式）。1回だけのセットでは実際の重量を使用。参考指標であり、実際の最大挙上重量を保証するものではありません。</p></div>
+    </section>
+    <section id="page-settings" hidden>
+      <div class="card"><h2>データのバックアップ</h2><p class="muted">iPhone内に保存したデータは、SafariのWebサイトデータ消去や端末変更で失われることがあります。定期的にファイルへ書き出してください。</p><div class="actions"><button id="exportBtn" class="btn btn-primary" type="button">書き出す</button><label class="btn fileBtn" for="importFile">読み込む<input type="file" id="importFile" accept=".json,application/json"></label></div><p class="muted">読み込むと同じ日付の記録は上書きされます。実行前に確認します。</p><p id="backupMessage" class="success" aria-live="polite"></p></div>
+      <div class="card"><h2>使い方</h2><p class="muted">Safariで公開したアプリのURLを開き、共有メニューの「ホーム画面に追加」からアイコンを作れます。公開URLにHTTPSが必要です。ホーム画面のアイコンから起動して使ってください。</p><div class="notice">これは試作品です。クラウド同期はありません。端末やブラウザを変える場合、JSONバックアップを先に保存してください。</div></div>
+    </section>
+  </main>
+</div>
+<nav class="nav" aria-label="画面の切り替え">
+  <button data-page="record" aria-current="page" type="button"><svg viewBox="0 0 24 24"><path d="M8 3h8l2 3v15H6V6z"/><path d="M9 3v5h6V3M9 13h6M12 10v6"/></svg>記録</button>
+  <button data-page="history" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3M8 18h7"/></svg>履歴</button>
+  <button data-page="progress" type="button"><svg viewBox="0 0 24 24"><path d="M4 20V4M4 20h17M7 16l4-5 4 3 5-8"/></svg>成長</button>
+  <button data-page="settings" type="button"><svg viewBox="0 0 24 24"><path d="M12 2l2 2.3 3-.4.7 3 2.7 1.3-1.3 2.8 1.3 2.8-2.7 1.3-.7 3-3-.4-2 2.3-2-2.3-3 .4-.7-3-2.7-1.3 1.3-2.8-1.3-2.8 2.7-1.3.7-3 3 .4z" transform="translate(0 1) scale(1 .9)"/><circle cx="12" cy="11.5" r="3"/></svg>設定</button>
+</nav>
+<script src="app.js" defer></script>
+</body>
+</html>

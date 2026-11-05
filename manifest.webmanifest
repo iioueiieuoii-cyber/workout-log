@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "筋トレ記録",
+  "short_name": "筋トレ記録",
+  "description": "シンプルな個人用トレーニング記録アプリ",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#101827",
+  "icons": [
+    {"src":"apple-touch-icon.png", "sizes":"180x180", "type":"image/png", "purpose":"any"},
+    {"src":"icon.svg", "sizes":"any", "type":"image/svg+xml", "purpose":"any"}
+  ]
+}
