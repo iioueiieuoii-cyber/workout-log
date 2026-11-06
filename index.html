@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="筋トレ記録">
   <meta name="description" content="広告なし・オフライン対応の個人用筋トレ記録アプリ">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest?v=2">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>筋トレ記録</title>
@@ -76,12 +76,38 @@
     .fileBtn { position:relative; overflow:hidden; }
     .fileBtn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
     .lastSave { font-size:12px; color:var(--muted); margin-top:8px; }
+    .setPick { padding:8px 3px; text-align:center; height:46px; font-variant-numeric:tabular-nums; background:#fff; width:100%; border:1px solid #d7dce4; border-radius:11px; color:var(--navy); font-size:16px; }
+    .setPick.placeholder { color:#929daf; }
+    .setAdd { margin-top:12px; min-height:46px; padding:11px 14px; width:100%; background:#edf4ff; border:1px solid #cbdcf9; border-radius:11px; font-weight:700; color:#2767cf; font-size:14px; }
+    .timerCard { margin:0 0 14px; padding:13px 16px; background:white; border:1px solid var(--border); border-radius:16px; }
+    .timerTop { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    .timerTop > div { margin-right:auto; }
+    .timerLabel { font-size:11px; color:var(--muted); font-weight:650; }
+    #timerClock { font-variant-numeric:tabular-nums; font-size:28px; line-height:1.3; }
+    .timerOptions { display:flex; align-items:center; gap:9px; margin-top:8px; }
+    .timerOptions > select { min-height:38px; width:112px; padding:6px; font-size:14px; }
+    .timerOptions > label { font-size:12px; }
+    .timerOptions .soundToggle { display:flex; align-items:center; gap:5px; margin-left:auto; }
+    .timerOptions input[type=checkbox] { width:20px; min-height:20px; height:20px; accent-color:var(--accent); }
+    #timerNotice { margin:7px 0 0; font-size:11px; }
+    .pickerOverlay { position:fixed; inset:0; z-index:20; background:rgba(12,20,35,.42); display:flex; align-items:end; }
+    .pickerSheet { background:#fff; width:100%; border-radius:20px 20px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -10px 28px #0002; }
+    .pickerHeader { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .pickerViewport { height:226px; max-width:400px; position:relative; margin:12px auto; overflow:hidden; mask-image:linear-gradient(to bottom,transparent 0%,black 22%,black 78%,transparent 100%); }
+    .pickerWheel { height:226px; overflow-y:auto; scroll-snap-type:y mandatory; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .pickerWheel::-webkit-scrollbar { display:none; }
+    .pickerOption { height:46px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:22px; font-variant-numeric:tabular-nums; }
+    .pickerPad { height:90px; }
+    .pickerFocus { position:absolute; top:90px; left:8px; right:8px; height:46px; border-top:1px solid #b7c6de; border-bottom:1px solid #b7c6de; background:rgba(40,100,200,.06); border-radius:8px; pointer-events:none; }
+    .pickerHint { text-align:center; margin:0; }
+    body.pickerOpen { overflow:hidden; }
     @media(max-width:360px) { .app { padding-left:11px; padding-right:11px; } .card { padding:13px; } h1 { font-size:23px; } }
   </style>
 </head>
 <body>
 <div class="app">
-  <header><div><div class="eyebrow">WORKOUT LOG</div><h1>筋トレ記録</h1></div><span class="badge">広告なし・個人用</span></header>
+  <header><div><div class="eyebrow">WORKOUT LOG</div><h1>筋トレ記録</h1></div></header>
+  <div class="timerCard" aria-label="休憩タイマー"><div class="timerTop"><div><div class="timerLabel">REST TIMER · セット間の休憩</div><strong id="timerClock">01:30</strong></div><button id="timerStart" class="btn btn-primary" type="button">START</button><button id="timerReset" class="btn btn-small" type="button">リセット</button></div><div class="timerOptions"><label for="timerDuration">時間</label><select id="timerDuration"><option value="60">60秒</option><option value="90" selected>90秒</option><option value="120">120秒</option><option value="180">180秒</option></select><label class="soundToggle"><input id="timerSound" type="checkbox">終了音</label></div><p id="timerNotice" class="muted" aria-live="polite">通知音は初期設定でオフです。音楽再生への影響は端末によって異なります。</p></div>
   <main>
     <section id="page-record">
       <div class="card">
@@ -90,16 +116,17 @@
         <div class="field"><label for="exerciseSelect">種目を追加</label><div class="addBox"><select id="exerciseSelect" aria-label="追加する種目"></select><button id="addExercise" class="btn btn-small" type="button">＋ 追加</button></div></div>
         <div class="addBox"><input id="customExercise" maxlength="40" placeholder="新しい種目名を入力" aria-label="新しい種目名"><button id="addCustom" class="btn btn-small" type="button">登録して追加</button></div>
         <div id="exerciseList"></div>
-        <div class="actions"><button id="saveWorkout" class="btn btn-primary btn-full" type="button">この日の記録を保存</button></div>
+        
         <p id="saveMessage" class="success" role="status" aria-live="polite"></p>
       </div>
-      <p class="muted">前のセットの数値を引き継げます。記録はこの端末のブラウザ内に保存されます。</p>
+      <p class="muted">入力内容は自動保存されます。集計には重量と回数の両方が入力されたセットのみ使用します。</p>
     </section>
     <section id="page-history" hidden>
       <div class="card"><div class="sectionHead"><h2>履歴</h2><span id="recordCount" class="muted"></span></div><div id="historyList"></div></div>
     </section>
     <section id="page-progress" hidden>
       <div class="card"><h2>成長グラフ</h2><div class="field"><label for="chartExercise">種目</label><select id="chartExercise"></select></div><div class="grid2"><div class="stat"><span>最高使用重量</span><strong id="bestWeight">—</strong></div><div class="stat"><span>推定1RMの最高値</span><strong id="bestOneRM">—</strong></div></div><div id="chartEmpty" class="empty" hidden>まだグラフに表示する記録がありません。</div><div class="chartWrap"><svg id="chart" viewBox="0 0 340 210" role="img" aria-label="推定1RMの推移"></svg></div><p class="muted">推定1RM = 重量 × (1 + 回数 ÷ 30)（Epley式）。1回だけのセットでは実際の重量を使用。参考指標であり、実際の最大挙上重量を保証するものではありません。</p></div>
+      <div class="card"><h2>総負荷量</h2><p class="muted">重量 × 回数の合計（自重はkg換算しません）</p><div class="field"><label for="volumeExercise">対象種目</label><select id="volumeExercise"></select></div><div class="field"><label for="volumePeriod">集計期間</label><select id="volumePeriod"><option value="week">直近7日間</option><option value="month">直近1か月（暦月）</option><option value="year">1年（暦年）</option></select></div><div class="field" id="volumeYearWrap" hidden><label for="volumeYear">対象年</label><select id="volumeYear"></select></div><div class="stat"><span id="volumeCaption">期間内の総負荷量</span><strong id="volumeTotal">0 kg</strong></div><p class="muted" id="volumeDetails"></p></div>
     </section>
     <section id="page-settings" hidden>
       <div class="card"><h2>データのバックアップ</h2><p class="muted">iPhone内に保存したデータは、SafariのWebサイトデータ消去や端末変更で失われることがあります。定期的にファイルへ書き出してください。</p><div class="actions"><button id="exportBtn" class="btn btn-primary" type="button">書き出す</button><label class="btn fileBtn" for="importFile">読み込む<input type="file" id="importFile" accept=".json,application/json"></label></div><p class="muted">読み込むと同じ日付の記録は上書きされます。実行前に確認します。</p><p id="backupMessage" class="success" aria-live="polite"></p></div>
@@ -113,6 +140,7 @@
   <button data-page="progress" type="button"><svg viewBox="0 0 24 24"><path d="M4 20V4M4 20h17M7 16l4-5 4 3 5-8"/></svg>成長</button>
   <button data-page="settings" type="button"><svg viewBox="0 0 24 24"><path d="M12 2l2 2.3 3-.4.7 3 2.7 1.3-1.3 2.8 1.3 2.8-2.7 1.3-.7 3-3-.4-2 2.3-2-2.3-3 .4-.7-3-2.7-1.3 1.3-2.8-1.3-2.8 2.7-1.3.7-3 3 .4z" transform="translate(0 1) scale(1 .9)"/><circle cx="12" cy="11.5" r="3"/></svg>設定</button>
 </nav>
-<script src="app.js" defer></script>
+<div id="pickerModal" class="pickerOverlay" hidden><div class="pickerSheet" role="dialog" aria-modal="true" aria-labelledby="pickerTitle"><div class="pickerHeader"><button id="pickerCancel" class="btn btn-small" type="button">キャンセル</button><strong id="pickerTitle">数値を選択</strong><button id="pickerDone" class="btn btn-primary btn-small" type="button">決定</button></div><div class="pickerViewport"><div id="pickerWheel" class="pickerWheel" role="listbox"></div><div class="pickerFocus" aria-hidden="true"></div></div><p class="muted pickerHint">上下にスワイプして選択できます</p></div></div>
+<script src="app.js?v=2" defer></script>
 </body>
 </html>

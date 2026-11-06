@@ -1,5 +1,5 @@
-const CACHE_NAME = 'workout-log-v1';
-const ASSETS = ['./', './index.html', './app.js', './manifest.webmanifest', './icon.svg', './apple-touch-icon.png'];
+const CACHE_NAME = 'workout-log-v2';
+const ASSETS = ['./', './index.html', './app.js?v=2', './manifest.webmanifest?v=2', './icon.svg', './apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
@@ -8,5 +8,9 @@ self.addEventListener('activate', event => {
 });
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
+  // 更新直後の古い画面を避けるため、オンライン時は最新を優先する。
+  event.respondWith(fetch(event.request).then(response => {
+    if(response.ok){const copy=response.clone();event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.put(event.request, copy)));}
+    return response;
+  }).catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html'))));
 });
