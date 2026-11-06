@@ -132,19 +132,103 @@ function renderVolume(){
  $('volumeTotal').textContent=total.toLocaleString('ja-JP',{maximumFractionDigits:1})+' kg';$('volumeCaption').textContent=period==='year'?year+'年の総負荷量':period==='week'?'直近7日間の総負荷量':'今月の総負荷量';$('volumeDetails').textContent=`重量換算できたセット：${sets}セット。自重セットは集計していません。`;
 }
 
-// 休憩タイマー（画面表示中のみ保証・音楽を制御しない）
+// 休憩タイマー: AudioContextはユーザー操作時に準備。音楽アプリの再生状態は操作しない。
 let timerEnd=0,timerRemaining=90,timerTick=null,timerRunning=false;
-const savedDuration=Number(preferences.duration);if([60,90,120,180].includes(savedDuration))$('timerDuration').value=String(savedDuration);
-$('timerSound').checked=Boolean(preferences.sound);timerRemaining=Number($('timerDuration').value);
+let audioContext=null;
+const savedDuration=Number(preferences.duration);
+if([60,90,120,180].includes(savedDuration))$('timerDuration').value=String(savedDuration);
+$('timerSound').checked=Boolean(preferences.sound);
+timerRemaining=Number($('timerDuration').value);
 const timerFormat=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-function renderTimer(){$('timerClock').textContent=timerFormat(timerRemaining);$('timerStart').textContent=timerRunning?'一時停止':timerRemaining===0?'再スタート':'START';}
-function beep(){if(!$('timerSound').checked)return;try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();if(ctx.state==='suspended')ctx.resume();const osc=ctx.createOscillator();const vol=ctx.createGain();osc.type='sine';osc.frequency.value=780;vol.gain.setValueAtTime(0.0001,ctx.currentTime);vol.gain.exponentialRampToValueAtTime(.035,ctx.currentTime+.03);vol.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.22);osc.connect(vol);vol.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.24);osc.onended=()=>ctx.close();}catch(_){}}
-function updateTimer(){if(!timerRunning)return;timerRemaining=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));if(timerRemaining===0){timerRunning=false;clearInterval(timerTick);timerTick=null;$('timerNotice').textContent='休憩終了です。次のセットへ！';beep();}renderTimer();}
-$('timerStart').addEventListener('click',()=>{if(timerRunning){timerRemaining=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));timerRunning=false;clearInterval(timerTick);timerTick=null;}else{if(timerRemaining===0)timerRemaining=Number($('timerDuration').value);timerEnd=Date.now()+timerRemaining*1000;timerRunning=true;timerTick=setInterval(updateTimer,200);$('timerNotice').textContent='休憩中…（画面を開いてお使いください）';}renderTimer();});
-$('timerReset').addEventListener('click',()=>{timerRunning=false;clearInterval(timerTick);timerTick=null;timerRemaining=Number($('timerDuration').value);$('timerNotice').textContent='リセットしました。';renderTimer();});
-function savePreferences(){preferences={duration:Number($('timerDuration').value),sound:$('timerSound').checked};try{localStorage.setItem(PREF_KEY,JSON.stringify(preferences));}catch(_){}}
-$('timerDuration').addEventListener('change',()=>{savePreferences();if(!timerRunning){timerRemaining=Number($('timerDuration').value);renderTimer();}});
-$('timerSound').addEventListener('change',savePreferences);
+function renderTimer(){
+ $('timerClock').textContent=timerFormat(timerRemaining);
+ $('timerStart').textContent=timerRunning?'一時停止':timerRemaining===0?'再スタート':'START';
+}
+function prepareSound(){
+ if(!$('timerSound').checked)return;
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC){$('timerNotice').textContent='この環境では終了音を再生できません。';return;}
+  if(!audioContext || audioContext.state==='closed') audioContext=new AC();
+  // iOSではタップした瞬間にresumeが必要になることがある。
+  if(audioContext.state==='suspended') audioContext.resume().catch(()=>{});
+  // ユーザー操作に結び付いた無音の初期再生でオーディオを解錠。
+  const osc=audioContext.createOscillator(),gain=audioContext.createGain();
+  gain.gain.value=0;
+  osc.connect(gain);gain.connect(audioContext.destination);
+  osc.start();osc.stop(audioContext.currentTime+.015);
+ }catch(err){$('timerNotice').textContent='音声を準備できませんでした。画面通知は利用できます。';}
+}
+function playTimerSound(force=false){
+ if(!force && !$('timerSound').checked)return;
+ try{
+  if(!audioContext || audioContext.state==='closed'){
+   prepareSound();
+   if(!audioContext)return;
+  }
+  if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+  const base=audioContext.currentTime+.035;
+  [0,.23,.46].forEach((offset,i)=>{
+   const osc=audioContext.createOscillator(),gain=audioContext.createGain();
+   osc.type='sine';osc.frequency.value=i===2?980:820;
+   const t=base+offset;
+   gain.gain.setValueAtTime(.0001,t);
+   gain.gain.exponentialRampToValueAtTime(.10,t+.02);
+   gain.gain.exponentialRampToValueAtTime(.0001,t+.16);
+   osc.connect(gain);gain.connect(audioContext.destination);
+   osc.start(t);osc.stop(t+.18);
+  });
+ }catch(err){$('timerNotice').textContent='音を再生できませんでした。iPhoneの消音設定も確認してください。';}
+}
+function markTimerDone(){
+ timerRunning=false;clearInterval(timerTick);timerTick=null;timerRemaining=0;
+ document.querySelector('.timerCard').classList.add('isDone');
+ $('timerNotice').textContent='休憩終了です！ 次のセットへ。音が出ない場合は消音モードを確認してください。';
+ playTimerSound();renderTimer();
+}
+function updateTimer(){
+ if(!timerRunning)return;
+ timerRemaining=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));
+ if(timerRemaining===0){markTimerDone();return;}
+ renderTimer();
+}
+$('timerStart').addEventListener('click',()=>{
+ document.querySelector('.timerCard').classList.remove('isDone');
+ if(timerRunning){
+  timerRemaining=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));
+  timerRunning=false;clearInterval(timerTick);timerTick=null;
+  $('timerNotice').textContent='一時停止中です。';
+ }else{
+  if(timerRemaining===0)timerRemaining=Number($('timerDuration').value);
+  prepareSound();
+  timerEnd=Date.now()+timerRemaining*1000;timerRunning=true;
+  timerTick=setInterval(updateTimer,200);
+  $('timerNotice').textContent='休憩中…（この画面を開いたままお使いください）';
+ }
+ renderTimer();
+});
+$('timerReset').addEventListener('click',()=>{
+ timerRunning=false;clearInterval(timerTick);timerTick=null;
+ timerRemaining=Number($('timerDuration').value);
+ document.querySelector('.timerCard').classList.remove('isDone');
+ $('timerNotice').textContent='リセットしました。';renderTimer();
+});
+function savePreferences(){
+ preferences={duration:Number($('timerDuration').value),sound:$('timerSound').checked};
+ try{localStorage.setItem(PREF_KEY,JSON.stringify(preferences));}catch(_){}
+}
+$('timerDuration').addEventListener('change',()=>{
+ savePreferences();if(!timerRunning){timerRemaining=Number($('timerDuration').value);renderTimer();}
+});
+$('timerSound').addEventListener('change',()=>{
+ savePreferences();if($('timerSound').checked){prepareSound();$('timerNotice').textContent='終了音がオンになりました。「音をテスト」で確認できます。';}
+ else $('timerNotice').textContent='終了音はオフです。休憩終了は画面で通知します。';
+});
+$('timerTestSound').addEventListener('click',()=>{
+ if(!$('timerSound').checked){$('timerSound').checked=true;savePreferences();}
+ prepareSound();playTimerSound(true);
+ $('timerNotice').textContent='テスト音を再生しました。聞こえない場合はiPhoneの消音モードを解除してお試しください。';
+});
 renderTimer();
 
 $('workoutDate').value=editingDate;refreshOptions();

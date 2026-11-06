@@ -1,5 +1,5 @@
-const CACHE_NAME = 'workout-log-v2';
-const ASSETS = ['./', './index.html', './app.js?v=2', './manifest.webmanifest?v=2', './icon.svg', './apple-touch-icon.png'];
+const CACHE_NAME = 'workout-log-v3';
+const ASSETS = ['./', './index.html', './app.js?v=3', './manifest.webmanifest?v=3', './icon.svg', './hero-athlete.png', './apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

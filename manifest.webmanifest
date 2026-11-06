@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "筋トレ記録",
-  "short_name": "筋トレ記録",
-  "description": "シンプルな個人用トレーニング記録アプリ",
+  "name": "Workout Log",
+  "short_name": "Workout Log",
+  "description": "シンプルな個人用筋トレ記録アプリ Ver.0.3",
   "lang": "ja",
   "start_url": "./index.html",
   "scope": "./",
@@ -10,7 +10,17 @@
   "background_color": "#f5f7fa",
   "theme_color": "#101827",
   "icons": [
-    {"src":"apple-touch-icon.png", "sizes":"180x180", "type":"image/png", "purpose":"any"},
-    {"src":"icon.svg", "sizes":"any", "type":"image/svg+xml", "purpose":"any"}
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }

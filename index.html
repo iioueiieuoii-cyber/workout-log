@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#101827">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="筋トレ記録">
+  <meta name="apple-mobile-web-app-title" content="Workout Log">
   <meta name="description" content="広告なし・オフライン対応の個人用筋トレ記録アプリ">
-  <link rel="manifest" href="manifest.webmanifest?v=2">
+  <link rel="manifest" href="manifest.webmanifest?v=3">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <title>筋トレ記録</title>
+  <title>Workout Log</title>
   <style>
     :root { color-scheme: light; --navy:#101827; --accent:#2767cf; --muted:#667085; --border:#e6e9ee; --bg:#f5f7fa; --card:#fff; --green:#147d56; }
     * { box-sizing:border-box; }
@@ -21,7 +21,12 @@
     button { cursor:pointer; -webkit-tap-highlight-color:transparent; }
     button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #96b9ff; outline-offset:2px; }
     .app { max-width:650px; margin:auto; min-height:100dvh; padding:env(safe-area-inset-top) 16px calc(102px + env(safe-area-inset-bottom)); }
-    header { padding:25px 2px 17px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    header { position:relative; isolation:isolate; min-height:152px; overflow:hidden; margin:0 -7px 12px; padding:32px 11px 12px; display:flex; align-items:center; }
+    .heroTitle { position:relative; z-index:2; width:55%; pointer-events:none; }
+    .heroTitle h1 { font-size:clamp(27px,8.1vw,44px); white-space:nowrap; line-height:1.12; margin:0; color:#102344; font-style:italic; font-weight:900; letter-spacing:-.075em; text-shadow:1px 1px 0 #f5f7fa, 3px 3px 0 #f5f7fa; }
+    .heroTitle::after { content:""; display:block; width:100%; max-width:200px; height:5px; margin-top:9px; transform:skew(-31deg) rotate(-4deg); background:linear-gradient(90deg,#2d76d6,#86b5f7); border-radius:5px; }
+    .heroAthlete { position:absolute; z-index:1; right:-7px; bottom:2px; width:min(69%,390px); max-height:146px; object-fit:contain; object-position:right bottom; pointer-events:none; }
+    @media (min-width:540px) { header {min-height:180px;} .heroAthlete{max-height:178px;width:65%;} }
     .eyebrow { font-size:11px; font-weight:750; letter-spacing:.15em; color:var(--accent); }
     h1 { font-size:26px; letter-spacing:-.04em; margin:4px 0 0; }
     h2 { font-size:18px; margin:0 0 15px; }
@@ -90,6 +95,11 @@
     .timerOptions .soundToggle { display:flex; align-items:center; gap:5px; margin-left:auto; }
     .timerOptions input[type=checkbox] { width:20px; min-height:20px; height:20px; accent-color:var(--accent); }
     #timerNotice { margin:7px 0 0; font-size:11px; }
+    .timerOptions { flex-wrap:wrap; }
+    .timerOptions .soundTest { margin-left:auto; font-size:12px; min-height:36px; padding:5px 9px; }
+    .timerCard.isDone { border-color:#2f7ed9; box-shadow:0 0 0 3px #d9e9ff inset; }
+    .timerCard.isDone #timerClock { color:#1768c7; }
+    @media(max-width:420px){ .timerTop .btn {padding:10px 11px;} .timerTop {gap:5px;} .timerOptions .soundTest{margin-left:0;} }
     .pickerOverlay { position:fixed; inset:0; z-index:20; background:rgba(12,20,35,.42); display:flex; align-items:end; }
     .pickerSheet { background:#fff; width:100%; border-radius:20px 20px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -10px 28px #0002; }
     .pickerHeader { display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -106,8 +116,8 @@
 </head>
 <body>
 <div class="app">
-  <header><div><div class="eyebrow">WORKOUT LOG</div><h1>筋トレ記録</h1></div></header>
-  <div class="timerCard" aria-label="休憩タイマー"><div class="timerTop"><div><div class="timerLabel">REST TIMER · セット間の休憩</div><strong id="timerClock">01:30</strong></div><button id="timerStart" class="btn btn-primary" type="button">START</button><button id="timerReset" class="btn btn-small" type="button">リセット</button></div><div class="timerOptions"><label for="timerDuration">時間</label><select id="timerDuration"><option value="60">60秒</option><option value="90" selected>90秒</option><option value="120">120秒</option><option value="180">180秒</option></select><label class="soundToggle"><input id="timerSound" type="checkbox">終了音</label></div><p id="timerNotice" class="muted" aria-live="polite">通知音は初期設定でオフです。音楽再生への影響は端末によって異なります。</p></div>
+  <header><div class="heroTitle"><h1>Workout Log</h1></div><img class="heroAthlete" src="hero-athlete.png" alt="" aria-hidden="true" width="700" height="341"></header>
+  <div class="timerCard" aria-label="休憩タイマー"><div class="timerTop"><div><div class="timerLabel">REST TIMER · セット間の休憩</div><strong id="timerClock">01:30</strong></div><button id="timerStart" class="btn btn-primary" type="button">START</button><button id="timerReset" class="btn btn-small" type="button">リセット</button></div><div class="timerOptions"><label for="timerDuration">時間</label><select id="timerDuration"><option value="60">60秒</option><option value="90" selected>90秒</option><option value="120">120秒</option><option value="180">180秒</option></select><label class="soundToggle"><input id="timerSound" type="checkbox">終了音</label><button id="timerTestSound" class="btn btn-small soundTest" type="button">♪ 音をテスト</button></div><p id="timerNotice" class="muted" aria-live="polite">終了音を有効にしたら「音をテスト」で確認できます。音楽の停止・音量変更は行いません。</p></div>
   <main>
     <section id="page-record">
       <div class="card">
@@ -141,6 +151,6 @@
   <button data-page="settings" type="button"><svg viewBox="0 0 24 24"><path d="M12 2l2 2.3 3-.4.7 3 2.7 1.3-1.3 2.8 1.3 2.8-2.7 1.3-.7 3-3-.4-2 2.3-2-2.3-3 .4-.7-3-2.7-1.3 1.3-2.8-1.3-2.8 2.7-1.3.7-3 3 .4z" transform="translate(0 1) scale(1 .9)"/><circle cx="12" cy="11.5" r="3"/></svg>設定</button>
 </nav>
 <div id="pickerModal" class="pickerOverlay" hidden><div class="pickerSheet" role="dialog" aria-modal="true" aria-labelledby="pickerTitle"><div class="pickerHeader"><button id="pickerCancel" class="btn btn-small" type="button">キャンセル</button><strong id="pickerTitle">数値を選択</strong><button id="pickerDone" class="btn btn-primary btn-small" type="button">決定</button></div><div class="pickerViewport"><div id="pickerWheel" class="pickerWheel" role="listbox"></div><div class="pickerFocus" aria-hidden="true"></div></div><p class="muted pickerHint">上下にスワイプして選択できます</p></div></div>
-<script src="app.js?v=2" defer></script>
+<script src="app.js?v=3" defer></script>
 </body>
 </html>
