@@ -47,9 +47,9 @@ function renderExercises() {
       const line=document.createElement('div'); line.className='setRow';
       const num=document.createElement('span'); num.className='setNum'; num.textContent=String(setIdx+1);
       const weight=document.createElement('button'); weight.type='button'; weight.className='setPick'+(set.weight===''?' placeholder':'');weight.textContent=set.weight===''?'重量':set.weight==='自重'?'自重':`${set.weight} kg`;weight.setAttribute('aria-label',`${ex.name} ${setIdx+1}セット目の重量を選択`);
-      weight.addEventListener('click',()=>openPicker('weight',set,()=>{renderExercises();autoSave();}));
+      weight.addEventListener('click',()=>openPicker('weight',set,()=>{renderExercises();autoSave();},previousSetValue(ex.sets,setIdx,'weight')));
       const reps=document.createElement('button'); reps.type='button'; reps.className='setPick'+(set.reps===''?' placeholder':'');reps.textContent=set.reps===''?'回数':`${set.reps} 回`;reps.setAttribute('aria-label',`${ex.name} ${setIdx+1}セット目の回数を選択`);
-      reps.addEventListener('click',()=>openPicker('reps',set,()=>{renderExercises();autoSave();}));
+      reps.addEventListener('click',()=>openPicker('reps',set,()=>{renderExercises();autoSave();},previousSetValue(ex.sets,setIdx,'reps')));
       const del=document.createElement('button'); del.type='button'; del.className='btn btn-small btn-danger'; del.textContent='×'; del.setAttribute('aria-label',`${ex.name} ${setIdx+1}セット目を削除`);
       del.addEventListener('click',()=>{ if(ex.sets.length===1) {alert('最低1セットは残してください。');return;} ex.sets.splice(setIdx,1);renderExercises();autoSave();});
       line.append(num,weight,reps,del); block.append(line);
@@ -99,25 +99,56 @@ function showPage(page){for(const p of ['record','history','progress','settings'
 function downloadBackup(){const blob=new Blob([JSON.stringify({format:'personal-workout-log',exportedAt:new Date().toISOString(),...store},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=`workout-backup-${localDate()}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);$('backupMessage').textContent='バックアップファイルを書き出しました。iPhoneの「ファイル」などに保存してください。';}
 function validBackup(o){return o&&o.format==='personal-workout-log'&&o.version===1&&Array.isArray(o.exercises)&&Array.isArray(o.records)&&o.exercises.length<=500&&o.records.length<=10000&&o.exercises.every(n=>typeof n==='string'&&n.length>0&&n.length<=40)&&o.records.every(r=>r&&typeof r.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&Array.isArray(r.items)&&r.items.length<=100&&r.items.every(i=>i&&typeof i.name==='string'&&i.name.length<=40&&Array.isArray(i.sets)&&i.sets.length>0&&i.sets.length<=200&&i.sets.every(s=>s&&(s.weight==='自重'||(typeof s.weight==='number'&&s.weight>=0&&s.weight<=10000))&&typeof s.reps==='number'&&Number.isInteger(s.reps)&&s.reps>=1&&s.reps<=1000)));}
 async function importBackup(event){const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>10*1024*1024){alert('ファイルが大きすぎます。');return;}try{const data=JSON.parse(await file.text());if(!validBackup(data)){alert('対応していないバックアップファイルです。');return;}const dates=new Set(data.records.map(r=>r.date));const conflicts=store.records.filter(r=>dates.has(r.date)).length;if(!confirm(`${data.records.length}日分の記録を読み込みます。${conflicts?`同じ日付の既存記録 ${conflicts} 件は上書きされます。`:''}よろしいですか？`))return;const old=store;const merged=new Map(store.records.map(r=>[r.date,r]));for(const r of data.records)merged.set(r.date,r);store={version:1,exercises:[...new Set([...store.exercises,...data.exercises,...data.records.flatMap(r=>r.items.map(i=>i.name))])],records:[...merged.values()]};if(!persist()){store=old;return;}refreshOptions();for(const date of dates)delete drafts[date];try{localStorage.setItem(DRAFT_KEY,JSON.stringify(drafts));}catch(_){}openDate(localDate());$('backupMessage').textContent='バックアップを読み込みました。';}catch(err){alert('読み込みに失敗しました。JSONファイルを確認してください。');}}
-// リール式の選択画面：iPhone上で縦にスクロールして選択
+// 横型の選択画面。同日・同種目の直前に値のあるセットを開始位置に使用する。
+// 新規セットの入力欄自体は未入力のまま維持し、「決定」時だけ保存する。
 let pickerState=null;
+const PICKER_ITEM_WIDTH=86;
 const weightValues=['自重',...Array.from({length:81},(_,i)=>String(i*2.5))];
 const repValues=Array.from({length:30},(_,i)=>String(i+1));
-function openPicker(kind,set,onDone){
+function previousSetValue(sets, index, kind){
+ for(let i=index-1;i>=0;i--){const v=sets[i]?.[kind];if(v!=='' && v!==null && v!==undefined)return String(v);}
+ return null;
+}
+function readPickerIndex(){
+ if(!pickerState)return 0;
+ const wheel=$('pickerWheel');
+ return Math.min(pickerState.values.length-1,Math.max(0,Math.round(wheel.scrollLeft/PICKER_ITEM_WIDTH)));
+}
+function refreshPickerSelection(){
+ if(!pickerState)return;
+ const index=readPickerIndex();
+ $('pickerWheel').querySelectorAll('.pickerOption').forEach((node,i)=>node.setAttribute('aria-selected',String(i===index)));
+}
+function openPicker(kind,set,onDone,priorValue=null){
  const values=kind==='weight'?weightValues:repValues;
  const labels=values.map(v=>kind==='weight'?(v==='自重'?v:`${v} kg`):`${v} 回`);
  const modal=$('pickerModal'),wheel=$('pickerWheel');wheel.replaceChildren();
  const pad1=document.createElement('div');pad1.className='pickerPad';wheel.append(pad1);
- labels.forEach((label,i)=>{const el=document.createElement('div');el.className='pickerOption';el.textContent=label;el.addEventListener('click',()=>wheel.scrollTo({top:i*46,behavior:'smooth'}));wheel.append(el);});
+ labels.forEach((label,i)=>{
+  const el=document.createElement('div');el.className='pickerOption';el.textContent=label;
+  el.setAttribute('role','option');el.setAttribute('aria-selected','false');
+  el.addEventListener('click',()=>wheel.scrollTo({left:i*PICKER_ITEM_WIDTH,behavior:'smooth'}));
+  wheel.append(el);
+ });
  const pad2=document.createElement('div');pad2.className='pickerPad';wheel.append(pad2);
- $('pickerTitle').textContent=kind==='weight'?'重量を選択':'回数を選択'; pickerState={kind,set,values,onDone};modal.hidden=false;document.body.classList.add('pickerOpen');
- let idx=values.indexOf(String(set[kind==='weight'?'weight':'reps']));if(idx<0)idx=kind==='weight'?Math.min(values.indexOf('20'),values.length-1):9;
- wheel.scrollTop=idx*46;
+ $('pickerTitle').textContent=kind==='weight'?'重量を選択':'回数を選択';
+ pickerState={kind,set,values,onDone};modal.hidden=false;document.body.classList.add('pickerOpen');
+ const own=String(set[kind]);
+ let idx=values.indexOf(own!==''?own:priorValue===null?'':String(priorValue));
+ if(idx<0)idx=kind==='weight'?values.indexOf('20'):values.indexOf('10');
+ // 開くたびに中央から開始。空欄に値は自動確定しない。
+ wheel.scrollLeft=idx*PICKER_ITEM_WIDTH;
+ refreshPickerSelection();
+ wheel.addEventListener('scroll',refreshPickerSelection,{passive:true});
 }
 function closePicker(){ $('pickerModal').hidden=true;document.body.classList.remove('pickerOpen');pickerState=null; }
 $('pickerCancel').addEventListener('click',closePicker);
 $('pickerModal').addEventListener('click',e=>{if(e.target===$('pickerModal'))closePicker();});
-$('pickerDone').addEventListener('click',()=>{if(!pickerState)return;const {kind,set,values,onDone}=pickerState;const idx=Math.min(values.length-1,Math.max(0,Math.round($('pickerWheel').scrollTop/46)));set[kind==='weight'?'weight':'reps']=values[idx];closePicker();onDone();});
+$('pickerDone').addEventListener('click',()=>{
+ if(!pickerState)return;
+ const {kind,set,values,onDone}=pickerState;
+ const idx=readPickerIndex();set[kind]=values[idx];closePicker();onDone();
+});
 
 // 期間別の総負荷量（自重は重量換算しない）
 function renderVolume(){

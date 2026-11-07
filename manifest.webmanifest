@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Workout Log",
   "short_name": "Workout Log",
-  "description": "シンプルな個人用筋トレ記録アプリ Ver.0.4",
+  "description": "シンプルな個人用筋トレ記録アプリ Ver.0.5",
   "lang": "ja",
   "start_url": "./index.html",
   "scope": "./",

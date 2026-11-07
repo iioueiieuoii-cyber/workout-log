@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Workout Log">
   <meta name="description" content="広告なし・オフライン対応の個人用筋トレ記録アプリ">
-  <link rel="manifest" href="manifest.webmanifest?v=4">
+  <link rel="manifest" href="manifest.webmanifest?v=5">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>Workout Log</title>
@@ -103,16 +103,24 @@
     .pickerOverlay { position:fixed; inset:0; z-index:20; background:rgba(12,20,35,.42); display:flex; align-items:end; }
     .pickerSheet { background:#fff; width:100%; border-radius:20px 20px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -10px 28px #0002; }
     .pickerHeader { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .pickerViewport { height:226px; max-width:400px; position:relative; margin:12px auto; overflow:hidden; mask-image:linear-gradient(to bottom,transparent 0%,black 22%,black 78%,transparent 100%); }
-    .pickerWheel { height:226px; overflow-y:auto; scroll-snap-type:y mandatory; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    /* 横方向の慣性スクロール＋スナップ。中央の選択位置が変わる。 */
+    .pickerViewport { height:162px; width:100%; position:relative; margin:16px auto 8px; overflow:hidden; }
+    .pickerWheel { --item-width:86px; display:flex; align-items:center; width:100%; height:142px; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; touch-action:pan-x; scrollbar-width:none; }
     .pickerWheel::-webkit-scrollbar { display:none; }
-    .pickerOption { height:46px; display:flex; align-items:center; justify-content:center; scroll-snap-align:center; font-size:22px; font-variant-numeric:tabular-nums; }
-    .pickerPad { height:90px; }
-    .pickerFocus { position:absolute; top:90px; left:8px; right:8px; height:46px; border-top:1px solid #b7c6de; border-bottom:1px solid #b7c6de; background:rgba(40,100,200,.06); border-radius:8px; pointer-events:none; }
+    .pickerOption { flex:0 0 var(--item-width); height:83px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; white-space:nowrap; scroll-snap-align:center; font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; color:#8692a5; user-select:none; -webkit-user-select:none; }
+    .pickerOption[aria-selected=true] { color:#102344; font-weight:800; font-size:22px; }
+    .pickerOption::after { content:""; width:2px; height:12px; border-radius:2px; margin-top:10px; background:#b8c5d8; }
+    .pickerOption[aria-selected=true]::after { height:22px; background:#2767cf; width:3px; }
+    .pickerPad { flex:0 0 calc(50% - 43px); height:1px; }
+    .pickerFocus { position:absolute; top:18px; left:calc(50% - 43px); width:86px; height:98px; border:1px solid #a9c8fa; background:rgba(40,100,200,.065); border-radius:13px; pointer-events:none; }
+    .pickerViewport::after { content:"▼"; position:absolute; bottom:0; left:50%; transform:translateX(-50%); color:#2767cf; font-size:14px; pointer-events:none; }
     .pickerHint { text-align:center; margin:0; }
     body.pickerOpen { overflow:hidden; }
     @media(max-width:360px) { .app { padding-left:11px; padding-right:11px; } .card { padding:13px; } h1 { font-size:23px; } }
 
+    .visuallyHidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    header.imageHeader { display:block; min-height:0; padding:0; margin:0 -7px 12px; overflow:hidden; }
+    .heroBanner { width:100%; height:auto; display:block; border-radius:4px; }
     .timerDoneOverlay { position:fixed; inset:0; z-index:30; background:rgba(10,15,26,.55); display:flex; align-items:center; justify-content:center; padding:20px; padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
     .timerDoneDialog { width:min(100%,380px); background:#f6f7fa; border:1px solid #dce0e8; border-radius:24px; padding:25px 22px 20px; text-align:center; box-shadow:0 18px 55px rgba(0,0,0,.23); }
     .timerDoneDialog h2 { margin:4px 0 7px; font-size:24px; }
@@ -123,7 +131,7 @@
 </head>
 <body>
 <div class="app">
-  <header><div class="heroTitle"><h1>Workout Log</h1></div><img class="heroAthlete" src="hero-athlete.png" alt="" aria-hidden="true" width="700" height="341"></header>
+  <header class="imageHeader"><h1 class="visuallyHidden">Workout Log</h1><img class="heroBanner" src="hero-banner.jpg" alt="Workout Log — 明るい金髪のドラゴンガール風ノーズアート" width="1672" height="820"></header>
   <div class="timerCard" aria-label="休憩タイマー"><div class="timerTop"><div><div class="timerLabel">REST TIMER · セット間の休憩</div><strong id="timerClock">01:30</strong></div><button id="timerStart" class="btn btn-primary" type="button">START</button><button id="timerReset" class="btn btn-small" type="button">リセット</button></div><div class="timerOptions"><label for="timerDuration">時間</label><select id="timerDuration"><option value="60">60秒</option><option value="90" selected>90秒</option><option value="120">120秒</option><option value="180">180秒</option></select><label class="soundToggle"><input id="timerSound" type="checkbox">終了音</label><button id="timerTestSound" class="btn btn-small soundTest" type="button">♪ 音をテスト</button></div><p id="timerNotice" class="muted" aria-live="polite">終了音を有効にしたら「音をテスト」で確認できます。音楽の停止・音量変更は行いません。</p></div>
   <main>
     <section id="page-record">
@@ -158,7 +166,7 @@
   <button data-page="settings" type="button"><svg viewBox="0 0 24 24"><path d="M12 2l2 2.3 3-.4.7 3 2.7 1.3-1.3 2.8 1.3 2.8-2.7 1.3-.7 3-3-.4-2 2.3-2-2.3-3 .4-.7-3-2.7-1.3 1.3-2.8-1.3-2.8 2.7-1.3.7-3 3 .4z" transform="translate(0 1) scale(1 .9)"/><circle cx="12" cy="11.5" r="3"/></svg>設定</button>
 </nav>
 <div id="timerDoneOverlay" class="timerDoneOverlay" hidden><div class="timerDoneDialog" role="alertdialog" aria-modal="true" aria-labelledby="timerDoneTitle" aria-describedby="timerDoneDescription"><h2 id="timerDoneTitle">休憩終了！</h2><p id="timerDoneDescription">次のセットを開始できます</p><button id="timerDoneOK" class="btn btn-primary" type="button">OK</button></div></div>
-<div id="pickerModal" class="pickerOverlay" hidden><div class="pickerSheet" role="dialog" aria-modal="true" aria-labelledby="pickerTitle"><div class="pickerHeader"><button id="pickerCancel" class="btn btn-small" type="button">キャンセル</button><strong id="pickerTitle">数値を選択</strong><button id="pickerDone" class="btn btn-primary btn-small" type="button">決定</button></div><div class="pickerViewport"><div id="pickerWheel" class="pickerWheel" role="listbox"></div><div class="pickerFocus" aria-hidden="true"></div></div><p class="muted pickerHint">上下にスワイプして選択できます</p></div></div>
-<script src="app.js?v=4" defer></script>
+<div id="pickerModal" class="pickerOverlay" hidden><div class="pickerSheet" role="dialog" aria-modal="true" aria-labelledby="pickerTitle"><div class="pickerHeader"><button id="pickerCancel" class="btn btn-small" type="button">キャンセル</button><strong id="pickerTitle">数値を選択</strong><button id="pickerDone" class="btn btn-primary btn-small" type="button">決定</button></div><div class="pickerViewport"><div id="pickerWheel" class="pickerWheel" role="listbox"></div><div class="pickerFocus" aria-hidden="true"></div></div><p class="muted pickerHint">左右にスワイプ・フリックして選択できます</p></div></div>
+<script src="app.js?v=5" defer></script>
 </body>
 </html>
