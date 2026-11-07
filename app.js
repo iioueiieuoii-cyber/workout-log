@@ -159,6 +159,12 @@ function prepareSound(){
   osc.start();osc.stop(audioContext.currentTime+.015);
  }catch(err){$('timerNotice').textContent='音声を準備できませんでした。画面通知は利用できます。';}
 }
+// 6連の電子音を3節。ユーザーがOKを押せば、予約済みの音も停止する。
+let activeBeepNodes=[];
+function stopTimerSound(){
+ for(const osc of activeBeepNodes){try{osc.stop();}catch(_){}}
+ activeBeepNodes=[];
+}
 function playTimerSound(force=false){
  if(!force && !$('timerSound').checked)return;
  try{
@@ -166,25 +172,46 @@ function playTimerSound(force=false){
    prepareSound();
    if(!audioContext)return;
   }
-  if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
-  const base=audioContext.currentTime+.035;
-  [0,.23,.46].forEach((offset,i)=>{
-   const osc=audioContext.createOscillator(),gain=audioContext.createGain();
-   osc.type='sine';osc.frequency.value=i===2?980:820;
-   const t=base+offset;
-   gain.gain.setValueAtTime(.0001,t);
-   gain.gain.exponentialRampToValueAtTime(.10,t+.02);
-   gain.gain.exponentialRampToValueAtTime(.0001,t+.16);
-   osc.connect(gain);gain.connect(audioContext.destination);
-   osc.start(t);osc.stop(t+.18);
-  });
+  if(audioContext.state==='suspended') audioContext.resume().catch(()=>{});
+  stopTimerSound();
+  const base=audioContext.currentTime+.055;
+  // Each group: 6 pulses of 105ms, 65ms gaps. 3 groups with short breaks, ~3.4 seconds total.
+  for(let group=0;group<3;group++){
+   for(let beat=0;beat<6;beat++){
+    const t=base+group*1.24+beat*.168;
+    const osc=audioContext.createOscillator();
+    const gain=audioContext.createGain();
+    osc.type='triangle';
+    osc.frequency.setValueAtTime((beat%2===0?920:1050),t);
+    gain.gain.setValueAtTime(0,t);
+    gain.gain.linearRampToValueAtTime(.24,t+.008);
+    gain.gain.setValueAtTime(.24,t+.088);
+    gain.gain.linearRampToValueAtTime(0,t+.115);
+    osc.connect(gain);gain.connect(audioContext.destination);
+    osc.start(t);osc.stop(t+.12);
+    activeBeepNodes.push(osc);
+   }
+  }
  }catch(err){$('timerNotice').textContent='音を再生できませんでした。iPhoneの消音設定も確認してください。';}
 }
+function showTimerDone(){
+ $('timerDoneOverlay').hidden=false;
+ document.body.classList.add('timerDoneOpen');
+ $('timerDoneOK').focus({preventScroll:true});
+}
+function closeTimerDone(){
+ $('timerDoneOverlay').hidden=true;
+ document.body.classList.remove('timerDoneOpen');
+ stopTimerSound();
+}
+$('timerDoneOK').addEventListener('click',closeTimerDone);
 function markTimerDone(){
  timerRunning=false;clearInterval(timerTick);timerTick=null;timerRemaining=0;
  document.querySelector('.timerCard').classList.add('isDone');
- $('timerNotice').textContent='休憩終了です！ 次のセットへ。音が出ない場合は消音モードを確認してください。';
- playTimerSound();renderTimer();
+ $('timerNotice').textContent='休憩終了です！ 次のセットへ。';
+ renderTimer();
+ showTimerDone();
+ playTimerSound();
 }
 function updateTimer(){
  if(!timerRunning)return;
@@ -193,6 +220,7 @@ function updateTimer(){
  renderTimer();
 }
 $('timerStart').addEventListener('click',()=>{
+ closeTimerDone();
  document.querySelector('.timerCard').classList.remove('isDone');
  if(timerRunning){
   timerRemaining=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));
@@ -208,6 +236,7 @@ $('timerStart').addEventListener('click',()=>{
  renderTimer();
 });
 $('timerReset').addEventListener('click',()=>{
+ closeTimerDone();
  timerRunning=false;clearInterval(timerTick);timerTick=null;
  timerRemaining=Number($('timerDuration').value);
  document.querySelector('.timerCard').classList.remove('isDone');
